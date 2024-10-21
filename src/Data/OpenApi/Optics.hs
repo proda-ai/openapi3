@@ -232,6 +232,15 @@ instance
   ) => LabelOptic "items" A_Lens NamedSchema NamedSchema a b where
   labelOptic = #schema % #items
   {-# INLINE labelOptic #-}
+  
+-- #prefixItems
+
+instance
+  ( a ~ Maybe OpenApiItems
+  , b ~ Maybe OpenApiItems
+  ) => LabelOptic "prefixItems" A_Lens NamedSchema NamedSchema a b where
+  labelOptic = #schema % #items
+  {-# INLINE labelOptic #-}
 
 -- #maximum
 

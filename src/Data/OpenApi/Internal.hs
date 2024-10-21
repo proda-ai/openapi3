@@ -1373,7 +1373,7 @@ instance ToJSON OpenApiItems where
     , "maxItems" .= (0 :: Int)
     , "example" .= Array mempty
     ]
-  toJSON (OpenApiItemsArray  x) = object [ "items" .= x ]
+  toJSON (OpenApiItemsArray  x) = object [ "prefixItems" .= x ]
 
 instance ToJSON Components where
   toJSON = sopSwaggerGenericToJSON
