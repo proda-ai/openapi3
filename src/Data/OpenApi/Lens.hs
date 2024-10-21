@@ -118,6 +118,12 @@ instance
 instance
   {-# OVERLAPPABLE #-}
   HasSchema s Schema
+  => HasPrefixItems s (Maybe OpenApiPrefixItems) where
+  prefixItems = schema.prefixItems
+
+instance
+  {-# OVERLAPPABLE #-}
+  HasSchema s Schema
   => HasMaximum s (Maybe Scientific) where
   maximum_ = schema.maximum_
 

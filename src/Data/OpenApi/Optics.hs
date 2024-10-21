@@ -176,6 +176,20 @@ instance
   labelOptic = unto (\x -> OpenApiItemsObject x)
   {-# INLINE labelOptic #-}
 
+-- OpenApiPrefixItems prisms
+
+instance
+  ( a ~ [Referenced Schema]
+  , b ~ [Referenced Schema]
+  ) => LabelOptic "_OpenApiPrefixItemsArray"
+         A_Review
+         OpenApiPrefixItems
+         OpenApiPrefixItems
+         a
+         b where
+  labelOptic = unto (\x -> OpenApiPrefixItemsArray x)
+  {-# INLINE labelOptic #-}
+
 -- =============================================================
 -- More helpful instances for easier access to schema properties
 
@@ -236,10 +250,10 @@ instance
 -- #prefixItems
 
 instance
-  ( a ~ Maybe OpenApiItems
-  , b ~ Maybe OpenApiItems
+  ( a ~ Maybe OpenApiPrefixItems
+  , b ~ Maybe OpenApiPrefixItems
   ) => LabelOptic "prefixItems" A_Lens NamedSchema NamedSchema a b where
-  labelOptic = #schema % #items
+  labelOptic = #schema % #prefixItems
   {-# INLINE labelOptic #-}
 
 -- #maximum
