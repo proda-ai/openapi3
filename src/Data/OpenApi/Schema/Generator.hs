@@ -72,6 +72,11 @@ schemaGen defns schema =
               OpenApiItemsArray refs ->
                   let itemGens = schemaGen defns . dereference defns <$> refs
                   in fmap (Array . V.fromList) $ sequence itemGens
+        | Just prefixItems <- schema ^. prefixItems -> do
+            case prefixItems of
+              OpenApiPrefixItemsArray refs ->
+                let itemGens = schemaGen defns . dereference defns <$> refs
+                in fmap (Array . V.fromList) $ sequence itemGens
       Just OpenApiString -> do
         size <- getSize
         let minLength' = fromMaybe 0 $ fromInteger <$> schema ^. minLength

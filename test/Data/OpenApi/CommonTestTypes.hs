@@ -482,7 +482,7 @@ ispairSchemaJSON :: Value
 ispairSchemaJSON = [aesonQQ|
 {
   "type": "array",
-  "items":
+  "prefixItems":
     [
       { "type": "integer" },
       { "type": "string"  }
