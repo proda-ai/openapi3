@@ -951,12 +951,11 @@ instance {-# OVERLAPPING #-} Constructor c => GToSchema (C1 c U1) where
   gdeclareNamedSchema = gdeclareNamedSumSchema
 
 -- | Single field constructor.
-instance (Selector s, GToSchema f, GToSchema (S1 s f)) => GToSchema (C1 c (S1 s f)) where
+instance (Selector s, GToSchema f, GToSchema (S1 s f), GSumToSchema (S1 s f)) => GToSchema (C1 c (S1 s f)) where
   gdeclareNamedSchema opts _ s
     | unwrapUnaryRecords opts = fieldSchema
     | tagSingleConstructors opts = do
-        NamedSchema _ schema' <- recordSchema
-        return (unnamed schema')
+        gdeclareNamedSumSchema opts (Proxy :: Proxy (S1 s f)) s
     | otherwise =
         case schema ^. items of
           Just (OpenApiItemsArray [_]) -> fieldSchema
@@ -1119,7 +1118,7 @@ instance {-# OVERLAPPABLE #-} (Constructor c, GToSchema f) => GSumToSchema (C1 c
     tell (All False)
     lift $ gsumConToSchema opts proxy
 
-instance (Constructor c, Selector s, GToSchema f) => GSumToSchema (C1 c (S1 s f)) where
+instance (Constructor c, Selector s, GToSchema f, GSumToSchema (S1 s f)) => GSumToSchema (C1 c (S1 s f)) where
   gsumToSchema opts proxy = do
     tell (All False)
     lift $ gsumConToSchema opts proxy
