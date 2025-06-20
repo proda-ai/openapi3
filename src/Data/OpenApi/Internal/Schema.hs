@@ -954,6 +954,9 @@ instance {-# OVERLAPPING #-} Constructor c => GToSchema (C1 c U1) where
 instance (Selector s, GToSchema f, GToSchema (S1 s f)) => GToSchema (C1 c (S1 s f)) where
   gdeclareNamedSchema opts _ s
     | unwrapUnaryRecords opts = fieldSchema
+    | tagSingleConstructors opts = do
+        NamedSchema _ schema' <- recordSchema
+        return (unnamed schema')
     | otherwise =
         case schema ^. items of
           Just (OpenApiItemsArray [_]) -> fieldSchema
