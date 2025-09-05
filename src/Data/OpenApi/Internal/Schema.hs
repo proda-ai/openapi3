@@ -346,7 +346,7 @@ inlineNonRecursiveSchemas defs = inlineSchemasWhen nonRecursive defs
 --         2,
 --         3
 --     ],
---     "items": {
+--     "prefixItems": {
 --         "type": "number"
 --     },
 --     "type": "array"
@@ -358,7 +358,7 @@ inlineNonRecursiveSchemas defs = inlineSchemasWhen nonRecursive defs
 --         "Jack",
 --         25
 --     ],
---     "items": [
+--     "prefixItems": [
 --         {
 --             "type": "string"
 --         },
@@ -407,6 +407,7 @@ sketchSchema = sketch . toJSON
       & items ?~ case ischema of
           Just s -> OpenApiItemsObject (Inline s)
           _      -> OpenApiItemsArray (map Inline ys)
+      & prefixItems ?~ OpenApiPrefixItemsArray (map Inline ys)
       where
         ys = map go (V.toList xs)
         allSame = and ((zipWith (==)) ys (tail ys))
@@ -573,6 +574,7 @@ sketchStrictSchema = go . toJSON
       & maxItems    ?~ fromIntegral sz
       & minItems    ?~ fromIntegral sz
       & items       ?~ OpenApiItemsArray (map (Inline . go) (V.toList xs))
+      & prefixItems ?~ OpenApiPrefixItemsArray (map (Inline . go) (V.toList xs))
       & uniqueItems ?~ allUnique
       & enum_       ?~ [js]
       where
@@ -991,6 +993,10 @@ appendItem :: Referenced Schema -> Maybe OpenApiItems -> Maybe OpenApiItems
 appendItem x Nothing = Just (OpenApiItemsArray [x])
 appendItem x (Just (OpenApiItemsArray xs)) = Just (OpenApiItemsArray (xs ++ [x]))
 appendItem _ _ = error "GToSchema.appendItem: cannot append to OpenApiItemsObject"
+
+appendPrefixItem :: Referenced Schema -> Maybe OpenApiPrefixItems -> Maybe OpenApiPrefixItems
+appendPrefixItem x Nothing = Just (OpenApiPrefixItemsArray [x])
+appendPrefixItem x (Just (OpenApiPrefixItemsArray xs)) = Just (OpenApiPrefixItemsArray (xs ++ [x]))
 
 withFieldSchema :: forall proxy s f. (Selector s, GToSchema f) =>
   SchemaOptions -> proxy s f -> Bool -> Schema -> Declare (Definitions Schema) Schema

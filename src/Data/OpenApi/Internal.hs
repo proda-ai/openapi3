@@ -603,6 +603,10 @@ data OpenApiItems where
   OpenApiItemsArray     :: [Referenced Schema] -> OpenApiItems
   deriving (Eq, Show, Typeable, Data)
 
+data OpenApiPrefixItems where
+  OpenApiPrefixItemsArray :: [Referenced Schema] -> OpenApiPrefixItems
+  deriving (Eq, Show, Typeable, Data)
+
 data OpenApiType where
   OpenApiString   :: OpenApiType
   OpenApiNumber   :: OpenApiType
@@ -665,6 +669,7 @@ data Schema = Schema
   , _schemaType :: Maybe OpenApiType
   , _schemaFormat :: Maybe Format
   , _schemaItems :: Maybe OpenApiItems
+  , _schemaPrefixItems :: Maybe OpenApiPrefixItems
   , _schemaMaximum :: Maybe Scientific
   , _schemaExclusiveMaximum :: Maybe Bool
   , _schemaMinimum :: Maybe Scientific
@@ -1375,6 +1380,14 @@ instance ToJSON OpenApiItems where
     ]
   toJSON (OpenApiItemsArray  x) = object [ "items" .= x ]
 
+instance ToJSON OpenApiPrefixItems where
+  toJSON (OpenApiPrefixItemsArray []) = object
+    [ "prefixItems" .= object []
+    , "maxItems" .= (0 :: Int)
+    , "example" .= Array mempty
+    ]
+  toJSON (OpenApiPrefixItemsArray x) = object [ "prefixItems" .= x ]
+
 instance ToJSON Components where
   toJSON = sopSwaggerGenericToJSON
   toEncoding = sopSwaggerGenericToEncoding
@@ -1528,6 +1541,10 @@ instance FromJSON OpenApiItems where
       | null obj  = pure $ OpenApiItemsArray [] -- Nullary schema.
       | otherwise = OpenApiItemsObject <$> parseJSON js
   parseJSON js@(Array _)  = OpenApiItemsArray  <$> parseJSON js
+  parseJSON _ = empty
+
+instance FromJSON OpenApiPrefixItems where
+  parseJSON js@(Array _) = OpenApiPrefixItemsArray <$> parseJSON js
   parseJSON _ = empty
 
 instance FromJSON Components where

@@ -75,6 +75,7 @@ module Data.OpenApi (
   Schema(..),
   NamedSchema(..),
   OpenApiItems(..),
+  OpenApiPrefixItems(..),
   Xml(..),
   Pattern,
   AdditionalProperties(..),
