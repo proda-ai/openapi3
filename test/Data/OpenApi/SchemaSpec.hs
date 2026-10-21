@@ -8,7 +8,8 @@ import Prelude ()
 import Prelude.Compat
 
 import Control.Lens ((^.))
-import Data.Aeson (Value)
+import Data.Aeson (Value, toJSON)
+import Data.Aeson.QQ.Simple
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import Data.Proxy
 import Data.Set (Set)
@@ -64,6 +65,35 @@ checkToSchemaDeclare proxy js = runDeclare (declareSchemaRef proxy) mempty <=> j
 
 spec :: Spec
 spec = do
+  describe "OpenAPI 3.1 tuples" $ do
+    context "heterogeneous tuple" $ checkToSchema (Proxy :: Proxy (Integer, Bool)) [aesonQQ|
+      {"type":"array", "prefixItems":[{"type":"integer"},{"type":"boolean"}],
+       "minItems":2, "maxItems":2}
+    |]
+    context "tuple with repeated types" $ checkToSchema (Proxy :: Proxy (Integer, Integer)) [aesonQQ|
+      {"type":"array", "prefixItems":[{"type":"integer"},{"type":"integer"}],
+       "minItems":2, "maxItems":2}
+    |]
+    context "list of tuples" $ checkToSchema (Proxy :: Proxy [(Integer, Bool)]) [aesonQQ|
+      {"type":"array", "items":{"type":"array",
+       "prefixItems":[{"type":"integer"},{"type":"boolean"}], "minItems":2, "maxItems":2}}
+    |]
+    context "nested tuple with a nullable element" $ checkToSchema (Proxy :: Proxy ((Integer, Bool), Maybe Integer)) [aesonQQ|
+      {"type":"array", "prefixItems":[
+        {"type":"array", "prefixItems":[{"type":"integer"},{"type":"boolean"}], "minItems":2, "maxItems":2},
+        {"anyOf":[{"type":"null"},{"type":"integer"}]}], "minItems":2, "maxItems":2}
+    |]
+    context "ordinary list" $ checkToSchema (Proxy :: Proxy [Integer]) [aesonQQ|
+      {"type":"array", "items":{"type":"integer"}}
+    |]
+    context "heterogeneous sketch" $ sketchSchema (True, "text") <=> [aesonQQ|
+      {"type":"array", "example":[true,"text"],
+       "prefixItems":[{"type":"boolean"},{"type":"string"}]}
+    |]
+    it "encodes an empty sketch without empty prefixItems" $
+      toJSON (sketchSchema ([] :: [Integer])) `shouldBe` [aesonQQ|
+      {"type":"array", "example":[], "items":{}, "maxItems":0}
+    |]
   describe "Generic ToSchema" $ do
     context "Unit" $ checkToSchema (Proxy :: Proxy Unit) unitSchemaJSON
     context "Person" $ checkToSchema (Proxy :: Proxy Person) personSchemaJSON

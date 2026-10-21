@@ -32,6 +32,7 @@ tested-with:
    || ==9.4.8
    || ==9.6.3
    || ==9.8.1
+   || ==9.10.3
 
 custom-setup
   setup-depends:
@@ -66,10 +67,10 @@ library
 
   -- GHC boot libraries
   build-depends:
-      base             >=4.11.1.0  && <4.20
+      base             >=4.11.1.0  && <4.21
     , bytestring       >=0.10.8.2  && <0.13
     , containers       >=0.5.11.0  && <0.8
-    , template-haskell >=2.13.0.0  && <2.22
+    , template-haskell >=2.13.0.0  && <2.23
     , time             >=1.8.0.2   && <1.14
     , transformers     >=0.5.5.0   && <0.7
 
@@ -79,13 +80,13 @@ library
 
   -- other dependencies
   build-depends:
-      base-compat-batteries     >=0.11.1   && <0.14
+      base-compat-batteries     >=0.11.1   && <0.15
     , aeson                     >=1.4.2.0  && <1.6 || >=2.0.1.0 && < 2.3
     , aeson-pretty              >=0.8.7    && <0.9
     -- cookie 0.4.3 is needed by GHC 7.8 due to time>=1.4 constraint
     , cookie                    >=0.4.3    && <0.6
     , generics-sop              >=0.5.1.0  && <0.6
-    , hashable                  >=1.2.7.0  && <1.5
+    , hashable                  >=1.2.7.0  && <1.6
     , http-media                >=0.8.0.0  && <0.9
     , insert-ordered-containers >=0.2.3    && <0.3
     , lens                      >=4.16.1   && <5.4
@@ -130,10 +131,6 @@ test-suite spec
     , HUnit                >=1.6.0.0 && <1.7
     , quickcheck-instances >=0.3.19  && <0.14
     , utf8-string          >=1.0.1.1 && <1.1
-
-  -- https://github.com/haskell/cabal/issues/3708
-  build-tool-depends:
-    hspec-discover:hspec-discover >=2.5.5 && <2.12
 
   other-modules:
     SpecCommon

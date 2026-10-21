@@ -93,7 +93,7 @@ allOperations = paths.traverse.template
 --         "title": "",
 --         "version": ""
 --     },
---     "openapi": "3.0.0",
+--     "openapi": "3.1.0",
 --     "paths": {
 --         "/user": {
 --             "get": {
@@ -120,7 +120,7 @@ allOperations = paths.traverse.template
 --         "title": "",
 --         "version": ""
 --     },
---     "openapi": "3.0.0",
+--     "openapi": "3.1.0",
 --     "paths": {
 --         "/user": {
 --             "get": {
@@ -233,7 +233,7 @@ declareResponse cType proxy = do
 --         "title": "",
 --         "version": ""
 --     },
---     "openapi": "3.0.0",
+--     "openapi": "3.1.0",
 --     "paths": {
 --         "/user": {
 --             "get": {

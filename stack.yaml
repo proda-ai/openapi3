@@ -1,5 +1,17 @@
-resolver: lts-21.24
+# GHC 9.10.3.
+resolver: lts-24.45
 packages:
 - '.'
 ghc-options:
   $locals: -Wall -Wno-unused-imports -Wno-dodgy-imports -Wno-name-shadowing
+
+# Pin Aeson and text-iso8601 to the same release.
+extra-deps:
+- git: https://github.com/haskell/aeson
+  commit: v2.2.5.1
+  # nix-sha256: sha256-GUu4csSmUyOOpFYYupz4tiMnA8d8GzGkEuK0bBMHX1U=
+- git: https://github.com/haskell/aeson
+  commit: v2.2.5.1
+  subdirs:
+  - text-iso8601
+  # nix-sha256: sha256-GUu4csSmUyOOpFYYupz4tiMnA8d8GzGkEuK0bBMHX1U=

@@ -42,7 +42,7 @@ import           Data.OpenApi.Aeson.Compat (stringToKey)
 
 import           Test.Hspec
 import           Test.Hspec.QuickCheck
-import           Test.QuickCheck
+import           Test.QuickCheck hiding (Success)
 import           Test.QuickCheck.Instances           ()
 
 shouldValidate :: (ToJSON a, ToSchema a) => Proxy a -> a -> Bool
@@ -62,6 +62,43 @@ shouldNotValidate f = not . null . validateJSON defs sch . f
 
 spec :: Spec
 spec = do
+  describe "OpenAPI 3.1 tuple validation" $ do
+    let (defs, tupleSchema) = runDeclare (declareSchema (Proxy :: Proxy (Integer, Bool))) mempty
+        validateTuple = validateJSON defs tupleSchema
+    it "accepts the correct positions" $
+      validateTuple [aesonQQ|[1, true]|] `shouldBe` []
+    it "rejects reversed positions" $
+      validateTuple [aesonQQ|[true, 1]|] `shouldSatisfy` (not . null)
+    it "rejects a missing element" $
+      validateTuple [aesonQQ|[1]|] `shouldSatisfy` (not . null)
+    it "rejects an extra element" $
+      validateTuple [aesonQQ|[1, true, null]|] `shouldSatisfy` (not . null)
+    it "preserves validation after encoding and decoding" $
+      case eitherDecode (encode tupleSchema) of
+        Left err -> expectationFailure err
+        Right decoded -> validateJSON defs decoded [aesonQQ|[true, 1]|] `shouldSatisfy` (not . null)
+    it "validates nested tuple positions" $ do
+      let (nestedDefs, nestedSchema) = runDeclare (declareSchema (Proxy :: Proxy ((Integer, Bool), Maybe Integer))) mempty
+      validateJSON nestedDefs nestedSchema [aesonQQ|[[1, true], null]|] `shouldBe` []
+      validateJSON nestedDefs nestedSchema [aesonQQ|[[true, 1], null]|] `shouldSatisfy` (not . null)
+    it "checks the type of a nullable tuple element" $ do
+      let (nullableDefs, nullableSchema) = runDeclare (declareSchema (Proxy :: Proxy (Integer, Maybe Bool))) mempty
+      validateJSON nullableDefs nullableSchema [aesonQQ|[1, null]|] `shouldBe` []
+      validateJSON nullableDefs nullableSchema [aesonQQ|[1, true]|] `shouldBe` []
+      validateJSON nullableDefs nullableSchema [aesonQQ|[1, 42]|] `shouldSatisfy` (not . null)
+    it "allows a partial prefix when minItems does not require it" $
+      case fromJSON [aesonQQ|{"type":"array", "prefixItems":[{"type":"string"},{"type":"integer"}]}|] of
+        Error err -> expectationFailure err
+        Success decoded -> do
+          validateJSON mempty decoded [aesonQQ|[]|] `shouldBe` []
+          validateJSON mempty decoded [aesonQQ|["x"]|] `shouldBe` []
+          validateJSON mempty decoded [aesonQQ|[1]|] `shouldSatisfy` (not . null)
+    it "applies items only after the prefix" $
+      case fromJSON [aesonQQ|{"type":"array", "prefixItems":[{"type":"string"},{"type":"integer"}], "items":{"type":"boolean"}}|] of
+        Error err -> expectationFailure err
+        Success decoded -> do
+          validateJSON mempty decoded [aesonQQ|["x", 1, true, false]|] `shouldBe` []
+          validateJSON mempty decoded [aesonQQ|["x", 1, "bad"]|] `shouldSatisfy` (not . null)
   describe "Validation" $ do
     prop "Bool" $ shouldValidate (Proxy :: Proxy Bool)
     prop "Char" $ shouldValidate (Proxy :: Proxy Char)

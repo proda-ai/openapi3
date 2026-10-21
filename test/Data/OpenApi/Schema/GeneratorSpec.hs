@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedLists   #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PackageImports    #-}
+{-# LANGUAGE QuasiQuotes       #-}
 module Data.OpenApi.Schema.GeneratorSpec where
 
 import           Prelude                             ()
@@ -8,6 +9,7 @@ import           Prelude.Compat
 
 import           Data.OpenApi
 import           Data.OpenApi.Schema.Generator
+import           Data.Aeson.QQ.Simple
 
 import           Control.Lens.Operators
 import           Data.Aeson
@@ -33,7 +35,7 @@ import           GHC.Generics
 
 import           Test.Hspec
 import           Test.Hspec.QuickCheck
-import           Test.QuickCheck
+import           Test.QuickCheck hiding (Success)
 
 shouldValidate :: (FromJSON a, ToSchema a) => Proxy a -> Property
 shouldValidate = validateFromJSON
@@ -45,6 +47,15 @@ shouldNotValidate = expectFailure . shouldValidate
 
 spec :: Spec
 spec = do
+  describe "OpenAPI 3.1 array generation" $ do
+    prop "honours prefixItems and trailing items" $
+      case fromJSON [aesonQQ|
+        {"type":"array", "prefixItems":[{"type":"string"},{"type":"integer"}],
+         "items":{"type":"boolean"}, "minItems":3, "maxItems":5}
+      |] of
+        Error err -> counterexample err False
+        Success sch -> forAll (schemaGen mempty sch) $ \value ->
+          validateJSON mempty sch value === []
   describe "FromJSON validation" $ do
     prop "Bool" $ shouldValidate (Proxy :: Proxy Bool)
     prop "Char" $ shouldValidate (Proxy :: Proxy Char)
