@@ -28,8 +28,8 @@ import           Prelude                             ()
 import           Prelude.Compat
 
 import           Control.Applicative
-import           Control.Lens                        hiding (allOf)
-import           Control.Monad                       (forM, forM_, when)
+import           Control.Lens                        hiding (allOf, anyOf)
+import           Control.Monad                       (forM, forM_, unless, when)
 
 import           Data.Aeson                          hiding (Result)
 #if MIN_VERSION_aeson(2,0,0)
@@ -361,8 +361,16 @@ validateArray xs = do
     when (len < fromInteger n) $
       invalid ("array is too short (size should be >=" ++ show n ++ ")")
 
+  prefixLength <- withSchema $ \sch ->
+    case sch ^. prefixItems of
+      Nothing -> pure 0
+      Just (OpenApiPrefixItemsArray itemSchemas) -> do
+        sequenceA_ (zipWith validateWithSchemaRef itemSchemas (Vector.toList xs))
+        pure (length itemSchemas)
+
   check items $ \case
-    OpenApiItemsObject itemSchema      -> traverse_ (validateWithSchemaRef itemSchema) xs
+    OpenApiItemsObject itemSchema ->
+      traverse_ (validateWithSchemaRef itemSchema) (Vector.drop prefixLength xs)
     OpenApiItemsArray itemSchemas -> do
       when (len /= length itemSchemas) $
         invalid ("array size is invalid (should be exactly " ++ show (length itemSchemas) ++ ")")
@@ -465,6 +473,7 @@ inferParamSchemaTypes :: Schema -> [OpenApiType]
 inferParamSchemaTypes sch = concat
   [ [ OpenApiArray | any ($ sch)
         [ has (items._Just)
+        , has (prefixItems._Just)
         , has (maxItems._Just)
         , has (minItems._Just)
         , has (uniqueItems._Just) ] ]
@@ -490,6 +499,11 @@ validateSchemaType val = withSchema $ \sch ->
         0 -> invalid $ "Value not valid under any of 'oneOf' schemas: " ++ show val
         1 -> valid
         _ -> invalid $ "Value matches more than one of 'oneOf' schemas: " ++ show val
+    (view anyOf -> Just variants) -> do
+      res <- forM variants $ \var ->
+        (True <$ validateWithSchemaRef var val) <|> pure False
+      unless (or res) $
+        invalid ("Value not valid under any of 'anyOf' schemas: " ++ show val)
     (view allOf -> Just variants) -> do
       -- Default semantics for Validation Monad will abort when at least one
       -- variant does not match.

@@ -346,7 +346,7 @@ inlineNonRecursiveSchemas defs = inlineSchemasWhen nonRecursive defs
 --         2,
 --         3
 --     ],
---     "prefixItems": {
+--     "items": {
 --         "type": "number"
 --     },
 --     "type": "array"
@@ -402,19 +402,15 @@ sketchSchema = sketch . toJSON
     go (Bool _)   = mempty & type_ ?~ OpenApiBoolean
     go (String _) = mempty & type_ ?~ OpenApiString
     go (Number _) = mempty & type_ ?~ OpenApiNumber
-    go (Array xs) = mempty
-      & type_   ?~ OpenApiArray
-      & items ?~ case ischema of
-          Just s -> OpenApiItemsObject (Inline s)
-          _      -> OpenApiItemsArray (map Inline ys)
-      & prefixItems ?~ OpenApiPrefixItemsArray (map Inline ys)
-      where
-        ys = map go (V.toList xs)
-        allSame = and ((zipWith (==)) ys (tail ys))
-
-        ischema = case ys of
-          (z:_) | allSame -> Just z
-          _               -> Nothing
+    go (Array xs) = case map go (V.toList xs) of
+      [] -> nullarySchema
+      ys@(s:ss)
+        | all (== s) ss -> mempty
+            & type_ ?~ OpenApiArray
+            & items ?~ OpenApiItemsObject (Inline s)
+        | otherwise -> mempty
+            & type_ ?~ OpenApiArray
+            & prefixItems ?~ OpenApiPrefixItemsArray (map Inline ys)
     go (Object o) = mempty
       & type_         ?~ OpenApiObject
       & required      .~ sort (objectKeys o)
@@ -443,7 +439,9 @@ sketchSchema = sketch . toJSON
 --             3
 --         ]
 --     ],
---     "items": [
+--     "maxItems": 3,
+--     "minItems": 3,
+--     "prefixItems": [
 --         {
 --             "enum": [
 --                 1
@@ -472,8 +470,6 @@ sketchSchema = sketch . toJSON
 --             "type": "number"
 --         }
 --     ],
---     "maxItems": 3,
---     "minItems": 3,
 --     "type": "array",
 --     "uniqueItems": true
 -- }
@@ -486,7 +482,9 @@ sketchSchema = sketch . toJSON
 --             25
 --         ]
 --     ],
---     "items": [
+--     "maxItems": 2,
+--     "minItems": 2,
+--     "prefixItems": [
 --         {
 --             "enum": [
 --                 "Jack"
@@ -506,8 +504,6 @@ sketchSchema = sketch . toJSON
 --             "type": "number"
 --         }
 --     ],
---     "maxItems": 2,
---     "minItems": 2,
 --     "type": "array",
 --     "uniqueItems": true
 -- }
@@ -569,12 +565,12 @@ sketchStrictSchema = go . toJSON
       & minimum_    ?~ n
       & multipleOf  ?~ n
       & enum_       ?~ [js]
-    go js@(Array xs) = mempty
+    go js@(Array xs) = (if V.null xs then nullarySchema else mempty)
       & type_       ?~ OpenApiArray
       & maxItems    ?~ fromIntegral sz
       & minItems    ?~ fromIntegral sz
-      & items       ?~ OpenApiItemsArray (map (Inline . go) (V.toList xs))
-      & prefixItems ?~ OpenApiPrefixItemsArray (map (Inline . go) (V.toList xs))
+      & prefixItems .~ (if V.null xs then Nothing
+          else Just $ OpenApiPrefixItemsArray (map (Inline . go) (V.toList xs)))
       & uniqueItems ?~ allUnique
       & enum_       ?~ [js]
       where
@@ -957,8 +953,8 @@ instance (Selector s, GToSchema f, GToSchema (S1 s f)) => GToSchema (C1 c (S1 s 
   gdeclareNamedSchema opts _ s
     | unwrapUnaryRecords opts = fieldSchema
     | otherwise =
-        case schema ^. items of
-          Just (OpenApiItemsArray [_]) -> fieldSchema
+        case schema ^. prefixItems of
+          Just (OpenApiPrefixItemsArray [_]) -> fieldSchema
           _ -> do
             -- We have to run recordSchema instead of just using its defs,
             -- since those can be recursive and will lead to infinite loop,
@@ -1006,7 +1002,7 @@ withFieldSchema opts _ isRequiredField schema = do
     if T.null fname
       then schema
         & type_ ?~ OpenApiArray
-        & items %~ appendItem ref
+        & prefixItems %~ appendPrefixItem ref
         & maxItems %~ Just . maybe 1 (+1)   -- increment maxItems
         & minItems %~ Just . maybe 1 (+1)   -- increment minItems
       else schema

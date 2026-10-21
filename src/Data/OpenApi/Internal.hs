@@ -114,7 +114,7 @@ lowerOpenApiSpecVersion = makeVersion [3, 0, 0]
 
 -- | This is the upper version of the OpenApi Spec this library can parse or produce
 upperOpenApiSpecVersion :: Version
-upperOpenApiSpecVersion = makeVersion [3, 0, 3]
+upperOpenApiSpecVersion = makeVersion [3, 1, 0]
 
 -- | The object provides metadata about the API.
 -- The metadata MAY be used by the clients if needed,
@@ -592,12 +592,11 @@ data Link = Link
 
 -- | Items for @'OpenApiArray'@ schemas.
 --
--- __Warning__: OpenAPI 3.0 does not support tuple arrays. However, OpenAPI 3.1 will, as
--- it will incorporate Json Schema mostly verbatim.
+-- @'OpenApiItemsObject'@ specifies homogeneous arrays, or the elements after
+-- 'prefixItems' in an OpenAPI 3.1 schema.
 --
--- @'OpenApiItemsObject'@ should be used to specify homogenous array @'Schema'@s.
---
--- @'OpenApiItemsArray'@ should be used to specify tuple @'Schema'@s.
+-- @'OpenApiItemsArray'@ retains the legacy tuple representation for compatibility.
+-- Use 'OpenApiPrefixItemsArray' in 'prefixItems' for OpenAPI 3.1 tuples.
 data OpenApiItems where
   OpenApiItemsObject    :: Referenced Schema   -> OpenApiItems
   OpenApiItemsArray     :: [Referenced Schema] -> OpenApiItems
@@ -1018,7 +1017,7 @@ instance Semigroup OpenApiSpecVersion where
   (<>) (OpenApiSpecVersion a) (OpenApiSpecVersion b) = OpenApiSpecVersion $ max a b
 
 instance Monoid OpenApiSpecVersion where
-  mempty = OpenApiSpecVersion (makeVersion [3,0,0])
+  mempty = OpenApiSpecVersion (makeVersion [3,1,0])
   mappend = (<>)
 
 instance Semigroup OpenApi where
@@ -1381,12 +1380,8 @@ instance ToJSON OpenApiItems where
   toJSON (OpenApiItemsArray  x) = object [ "items" .= x ]
 
 instance ToJSON OpenApiPrefixItems where
-  toJSON (OpenApiPrefixItemsArray []) = object
-    [ "prefixItems" .= object []
-    , "maxItems" .= (0 :: Int)
-    , "example" .= Array mempty
-    ]
-  toJSON (OpenApiPrefixItemsArray x) = object [ "prefixItems" .= x ]
+  toJSON (OpenApiPrefixItemsArray xs) = toJSON xs
+  toEncoding (OpenApiPrefixItemsArray xs) = toEncoding xs
 
 instance ToJSON Components where
   toJSON = sopSwaggerGenericToJSON
@@ -1671,7 +1666,7 @@ instance HasSwaggerAesonOptions Link where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "link"
 
 instance AesonDefaultValue Version where
-  defaultValue = Just (makeVersion [3,0,0])
+  defaultValue = Just (makeVersion [3,1,0])
 instance AesonDefaultValue OpenApiSpecVersion
 instance AesonDefaultValue Server
 instance AesonDefaultValue Components

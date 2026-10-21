@@ -5,7 +5,7 @@
 [![Stackage LTS](http://stackage.org/package/openapi3/badge/lts)](http://stackage.org/lts/package/opeopenapi3)
 [![Stackage Nightly](http://stackage.org/package/openapi3/badge/nightly)](http://stackage.org/nightly/package/openapi3)
 
-OpenAPI 3.0 data model.
+OpenAPI data model with OpenAPI 3.1 tuple and nullability support.
 
 The original OpenAPI 3.0 specification is available at http://swagger.io/specification/.
 
@@ -14,7 +14,11 @@ https://github.com/GetShopTV/swagger2.
 
 ## Usage
 
-This library is intended to be used for decoding and encoding OpenApi 3.0.3 specifications as well as manipulating them.
+Generated documents default to OpenAPI 3.1.0. Tuples use positional
+`prefixItems`, while homogeneous arrays use `items`. OpenAPI 3.0 documents
+can still be decoded; this fork does not yet implement every OpenAPI 3.1 feature.
+
+For development, run `nix-shell`, then `cabal test all --disable-optimization`.
 
 Please refer to [haddock documentation](http://hackage.haskell.org/package/openapi3).
 

@@ -58,7 +58,18 @@ schemaGen defns schema =
                    choose (truncate min, truncate max)
         | otherwise -> Number . fromInteger <$> arbitrary
       Just OpenApiArray
-        | Just 0 <- schema ^. maxLength -> pure $ Array V.empty
+        | Just 0 <- schema ^. maxItems -> pure $ Array V.empty
+        | Just (OpenApiPrefixItemsArray refs) <- schema ^. prefixItems -> do
+            size <- getSize
+            let minLength' = fromMaybe 0 $ fromInteger <$> schema ^. minItems
+                maxLength' = fromMaybe (max size (length refs)) $ fromInteger <$> schema ^. maxItems
+                tailGen = case schema ^. items of
+                  Just (OpenApiItemsObject ref) -> schemaGen defns (dereference defns ref)
+                  _ -> pure Null
+            arrayLength <- choose (minLength', max minLength' maxLength')
+            prefix <- traverse (schemaGen defns . dereference defns) (take arrayLength refs)
+            suffix <- vectorOf (max 0 (arrayLength - length refs)) tailGen
+            pure $ Array $ V.fromList (prefix ++ suffix)
         | Just items <- schema ^. items ->
             case items of
               OpenApiItemsObject ref -> do
@@ -72,11 +83,6 @@ schemaGen defns schema =
               OpenApiItemsArray refs ->
                   let itemGens = schemaGen defns . dereference defns <$> refs
                   in fmap (Array . V.fromList) $ sequence itemGens
-        | Just prefixItems <- schema ^. prefixItems -> do
-            case prefixItems of
-              OpenApiPrefixItemsArray refs ->
-                let itemGens = schemaGen defns . dereference defns <$> refs
-                in fmap (Array . V.fromList) $ sequence itemGens
       Just OpenApiString -> do
         size <- getSize
         let minLength' = fromMaybe 0 $ fromInteger <$> schema ^. minLength
